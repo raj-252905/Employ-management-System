@@ -1,10 +1,13 @@
+
 let selectedRow = null;
+const STORAGE_KEY = 'employees';
 
-window.onload = loadData;
+window.onload = function () {
+  loadData();
+};
 
-// Submit / Update
-function onSubmit(e) {
-  e.preventDefault();
+function onFormSubmit() {
+  event.preventDefault();
 
   if (!validateForm()) return;
 
@@ -20,140 +23,159 @@ function onSubmit(e) {
   resetForm();
 }
 
-// Get Form Data
 function getFormData() {
   let hobbies = [];
-  document.querySelectorAll("input[type='checkbox']:checked")
-    .forEach(cb => hobbies.push(cb.value));
 
-  let gender = document.querySelector("input[name='gender']:checked").value;
+  if (document.getElementById('cricket').checked) hobbies.push('Cricket');
+  if (document.getElementById('swimming').checked) hobbies.push('Swimming');
+  if (document.getElementById('reading').checked) hobbies.push('Reading');
+
+  let gender = '';
+  if (document.getElementById('male').checked) gender = 'Male';
+  if (document.getElementById('female').checked) gender = 'Female';
+
+  let designation = document.querySelector('select').value;
 
   return {
-    name: name.value,
-    email: email.value,
-    address: address.value,
-    phone: phone.value,
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    address: document.getElementById('address').value,
+    phone: document.getElementById('phone').value,
     gender: gender,
-    hobbies: hobbies.join(", "),
-    designation: designation.value
+    hobbies: hobbies.join(', '),
+    designation: designation,
   };
 }
 
-// Insert Record
 function insertRecord(data) {
-  let row = tableBody.insertRow();
-  row.insertCell(0).innerText = data.name;
-  row.insertCell(1).innerText = data.email;
-  row.insertCell(2).innerText = data.address;
-  row.insertCell(3).innerText = data.phone;
-  row.insertCell(4).innerText = data.gender;
-  row.insertCell(5).innerText = data.hobbies;
-  row.insertCell(6).innerText = data.designation;
-  row.insertCell(7).innerHTML = `
-    <button class="action-btn edit-btn" onclick="editRecord(this)">Edit</button>
-    <button class="action-btn delete-btn" onclick="deleteRecord(this)">Delete</button>
-  `;
+  let table = document.getElementById('storeList');
+  let row = table.insertRow();
+
+  row.insertCell(0).innerHTML = data.name;
+  row.insertCell(1).innerHTML = data.email;
+  row.insertCell(2).innerHTML = data.address;
+  row.insertCell(3).innerHTML = data.phone;
+  row.insertCell(4).innerHTML = data.gender;
+  row.insertCell(5).innerHTML = data.hobbies;
+  row.insertCell(6).innerHTML = data.designation;
+  row.insertCell(7).innerHTML =
+    '<button class="btn btn-sm btn-warning me-1" onclick="onEdit(this)">Edit</button>' +
+    '<button class="btn btn-sm btn-danger" onclick="onDelete(this)">Delete</button>';
 }
 
-// Edit Record
-function editRecord(btn) {
+function onEdit(btn) {
   selectedRow = btn.parentElement.parentElement;
 
-  name.value = selectedRow.cells[0].innerText;
-  email.value = selectedRow.cells[1].innerText;
-  address.value = selectedRow.cells[2].innerText;
-  phone.value = selectedRow.cells[3].innerText;
+  document.getElementById('name').value = selectedRow.cells[0].innerHTML;
+  document.getElementById('email').value = selectedRow.cells[1].innerHTML;
+  document.getElementById('address').value = selectedRow.cells[2].innerHTML;
+  document.getElementById('phone').value = selectedRow.cells[3].innerHTML;
 
-  document.querySelectorAll("input[name='gender']")
-    .forEach(r => r.checked = r.value === selectedRow.cells[4].innerText);
+  document.getElementById('male').checked = false;
+  document.getElementById('female').checked = false;
+  document.getElementById(
+    selectedRow.cells[4].innerHTML.toLowerCase(),
+  ).checked = true;
 
-  document.querySelectorAll("input[type='checkbox']")
-    .forEach(cb => cb.checked = selectedRow.cells[5].innerText.includes(cb.value));
+  let hobbies = selectedRow.cells[5].innerHTML;
 
-  designation.value = selectedRow.cells[6].innerText;
+  document.getElementById('cricket').checked =
+    hobbies.indexOf('Cricket') !== -1;
+  document.getElementById('swimming').checked =
+    hobbies.indexOf('Swimming') !== -1;
+  document.getElementById('reading').checked =
+    hobbies.indexOf('Reading') !== -1;
 
-  submitBtn.innerText = "Update";
+  document.querySelector('select').value = selectedRow.cells[6].innerHTML;
+
+  document.querySelector("button[type='submit']").innerText = 'Update';
 }
 
-// Update Record
 function updateRecord(data) {
-  selectedRow.cells[0].innerText = data.name;
-  selectedRow.cells[1].innerText = data.email;
-  selectedRow.cells[2].innerText = data.address;
-  selectedRow.cells[3].innerText = data.phone;
-  selectedRow.cells[4].innerText = data.gender;
-  selectedRow.cells[5].innerText = data.hobbies;
-  selectedRow.cells[6].innerText = data.designation;
+  selectedRow.cells[0].innerHTML = data.name;
+  selectedRow.cells[1].innerHTML = data.email;
+  selectedRow.cells[2].innerHTML = data.address;
+  selectedRow.cells[3].innerHTML = data.phone;
+  selectedRow.cells[4].innerHTML = data.gender;
+  selectedRow.cells[5].innerHTML = data.hobbies;
+  selectedRow.cells[6].innerHTML = data.designation;
 }
 
-// Delete Record
-function deleteRecord(btn) {
-  if (confirm("Are you sure you want to delete this record?")) {
-    btn.parentElement.parentElement.remove();
+function onDelete(btn) {
+  if (confirm('Are you sure you want to delete this employee?')) {
+    let row = btn.parentElement.parentElement;
+    document.getElementById('storeList').deleteRow(row.rowIndex - 1);
     saveData();
+    resetForm();
   }
 }
 
-// Reset Form
 function resetForm() {
+  document.querySelector('form').reset();
   selectedRow = null;
-  submitBtn.innerText = "Submit";
+  document.querySelector("button[type='submit']").innerText = 'Submit';
 }
 
-// Validation
 function validateForm() {
-  let valid = true;
+  let name = document.getElementById('name').value;
+  let email = document.getElementById('email').value;
+  let phone = document.getElementById('phone').value;
+  let designation = document.querySelector('select').value;
 
-  nameError.innerText = emailError.innerText =
-  phoneError.innerText = genderError.innerText =
-  designationError.innerText = "";
-
-  if (name.value === "") {
-    nameError.innerText = "Name is required";
-    valid = false;
+  if (name === '') {
+    alert('Name is required');
+    return false;
   }
 
-  if (!email.value.includes("@")) {
-    emailError.innerText = "Invalid email";
-    valid = false;
+  if (email === '' || email.indexOf('@') === -1 || email.indexOf('.') === -1) {
+    alert('Enter valid email');
+    return false;
   }
 
-  if (phone.value.length !== 10) {
-    phoneError.innerText = "Phone must be 10 digits";
-    valid = false;
+  if (phone === '' || phone.length !== 10) {
+    alert('Phone number must be 10 digits');
+    return false;
   }
 
-  if (!document.querySelector("input[name='gender']:checked")) {
-    genderError.innerText = "Select gender";
-    valid = false;
+  if (
+    !document.getElementById('male').checked &&
+    !document.getElementById('female').checked
+  ) {
+    alert('Please select gender');
+    return false;
   }
 
-  if (designation.value === "") {
-    designationError.innerText = "Select designation";
-    valid = false;
+  if (designation === 'Select designation') {
+    alert('Please select designation');
+    return false;
   }
 
-  return valid;
+  return true;
 }
 
-// Local Storage
 function saveData() {
+  let table = document.getElementById('storeList');
   let data = [];
-  for (let row of tableBody.rows) {
+
+  for (let i = 0; i < table.rows.length; i++) {
+    let row = table.rows[i];
     data.push({
-      name: row.cells[0].innerText,
-      email: row.cells[1].innerText,
-      address: row.cells[2].innerText,
-      phone: row.cells[3].innerText,
-      gender: row.cells[4].innerText,
-      hobbies: row.cells[5].innerText,
-      designation: row.cells[6].innerText
+      name: row.cells[0].innerHTML,
+      email: row.cells[1].innerHTML,
+      address: row.cells[2].innerHTML,
+      phone: row.cells[3].innerHTML,
+      gender: row.cells[4].innerHTML,
+      hobbies: row.cells[5].innerHTML,
+      designation: row.cells[6].innerHTML,
     });
   }
-  localStorage.setItem("employees", JSON.stringify(data));
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 function loadData() {
-  let data = JSON.parse(localStorage.getItem("employees")) || [];
-  data.forEach(emp => insertRecord(emp));
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  for (let i = 0; i < data.length; i++) {
+    insertRecord(data[i]);
+  }
 }
